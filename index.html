@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEO 실전 : 1등의 기술 — AI 검색 시대, 압도적 1등을 만드는 3주 마스터클래스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #0a0a0f;
+  --bg-card: #111118;
+  --bg-card-hover: #16161f;
+  --accent: #f0c040;
+  --accent-glow: rgba(240, 192, 64, 0.15);
+  --accent-dim: #b8912e;
+  --red: #ff4d4f;
+  --red-glow: rgba(255, 77, 79, 0.12);
+  --green: #52c41a;
+  --text-primary: #f5f5f7;
+  --text-secondary: #a0a0b0;
+  --text-muted: #6a6a7a;
+  --border: rgba(255,255,255,0.06);
+  --border-accent: rgba(240,192,64,0.25);
+  --gradient-hero: linear-gradient(170deg, #0a0a0f 0%, #12101e 40%, #1a1428 70%, #0a0a0f 100%);
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Noto Sans KR', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --max-w: 680px;
+  --radius: 16px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+/* ─── UTILITY ─── */
+.container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section {
+  padding: 80px 0;
+  position: relative;
+}
+
+.section + .section {
+  border-top: 1px solid var(--border);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: block;
+}
+
+.section-title {
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 900;
+  line-height: 1.35;
+  margin-bottom: 20px;
+  word-break: keep-all;
+}
+
+.section-title em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.desc {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.8;
+  word-break: keep-all;
+}
+
+/* ─── HERO ─── */
+.hero {
+  background: var(--gradient-hero);
+  padding: 100px 0 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(240,192,64,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(240,192,64,0.1);
+  border: 1px solid var(--border-accent);
+  border-radius: 100px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: 32px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.hero .badge .dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.hero h1 {
+  font-family: var(--font-body);
+  font-size: clamp(28px, 7vw, 48px);
+  font-weight: 900;
+  line-height: 1.25;
+  margin-bottom: 12px;
+  animation: fadeInUp 0.7s ease-out;
+  word-break: keep-all;
+}
+
+.hero h1 .gold {
+  background: linear-gradient(135deg, #f0c040, #ffd86e, #f0c040);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero .subtitle {
+  font-size: clamp(15px, 3.5vw, 18px);
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  line-height: 1.6;
+  animation: fadeInUp 0.8s ease-out;
+  word-break: keep-all;
+}
+
+.hero .hook-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  max-width: 520px;
+  margin: 0 auto 40px;
+  text-align: left;
+  animation: fadeInUp 0.9s ease-out;
+}
+
+.hero .hook-box p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  word-break: keep-all;
+}
+
+.hero .hook-box p strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* ─── PROBLEM ─── */
+.problem-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.problem-card:hover {
+  background: var(--bg-card-hover);
+  border-left-color: var(--accent);
+  transform: translateX(4px);
+}
+
+.problem-card .icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+/* ─── STRIKE MESSAGE ─── */
+.strike-section {
+  text-align: center;
+  padding: 60px 0;
+}
+
+.strike-msg {
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 900;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.strike-msg .line-through {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  text-decoration-color: var(--red);
+  text-decoration-thickness: 2px;
+}
+
+.strike-msg .highlight {
+  color: var(--accent);
+}
+
+/* ─── STEPS (3단계) ─── */
+.step-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.step-card .step-num {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 900;
+  color: rgba(240,192,64,0.08);
+  position: absolute;
+  top: -8px;
+  right: 20px;
+  line-height: 1;
+}
+
+.step-card .step-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.step-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.step-card .keyword {
+  display: inline-block;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 12px;
+}
+
+.step-card p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+/* ─── CURRICULUM ─── */
+.week-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.week-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.week-header:hover {
+  background: var(--bg-card-hover);
+}
+
+.week-number {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  border: 1px solid var(--border-accent);
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.week-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.week-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.week-body {
+  padding: 0 24px 20px 88px;
+}
+
+.week-body li {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 8px;
+  padding-left: 16px;
+  position: relative;
+  list-style: none;
+  word-break: keep-all;
+}
+
+.week-body li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--accent-dim);
+  font-size: 13px;
+}
+
+/* ─── PROMISE / BENEFITS ─── */
+.benefit-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 0;
+}
+
+.benefit-item + .benefit-item {
+  border-top: 1px solid var(--border);
+}
+
+.benefit-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+.benefit-text h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.benefit-text p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  word-break: keep-all;
+}
+
+/* ─── PRICING ─── */
+.pricing-card {
+  background: linear-gradient(145deg, #16141f, #1a1828);
+  border: 1px solid var(--border-accent);
+  border-radius: 20px;
+  padding: 40px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.pricing-card .original {
+  font-size: 20px;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--red);
+  margin-bottom: 4px;
+}
+
+.pricing-card .price {
+  font-size: clamp(36px, 8vw, 48px);
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.pricing-card .discount-badge {
+  display: inline-block;
+  background: var(--red);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+}
+
+.pricing-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+  text-align: left;
+}
+
+.pricing-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.pricing-info-row .info-label {
+  color: var(--text-muted);
+}
+
+.pricing-info-row .info-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── CTA BUTTON ─── */
+.cta-btn {
+  display: block;
+  width: 100%;
+  padding: 18px 32px;
+  background: linear-gradient(135deg, #f0c040, #e0a820);
+  color: #0a0a0f;
+  font-size: 17px;
+  font-weight: 800;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(240,192,64,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(240,192,64,0.35);
+}
+
+.cta-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.cta-btn:hover::after {
+  left: 100%;
+}
+
+.cta-sub {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── URGENCY BAR ─── */
+.urgency-bar {
+  background: rgba(255, 77, 79, 0.08);
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+/* ─── REVIEWS ─── */
+.review-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 14px;
+}
+
+.review-stars {
+  color: var(--accent);
+  font-size: 14px;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.review-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+.review-author {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── STICKY CTA ─── */
+.sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,15,0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  z-index: 100;
+  transform: translateY(100%);
+  transition: transform 0.4s ease;
+}
+
+.sticky-cta.visible {
+  transform: translateY(0);
+}
+
+.sticky-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sticky-price {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sticky-price strong {
+  display: block;
+  font-size: 20px;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.sticky-btn {
+  flex: 1;
+  max-width: 280px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #f0c040, #e0a820);
+  color: #0a0a0f;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* ─── DIVIDER ─── */
+.divider-line {
+  width: 48px;
+  height: 2px;
+  background: var(--accent);
+  margin: 0 auto 32px;
+  opacity: 0.4;
+}
+
+/* ─── INSTRUCTORS ─── */
+.instructor-card {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 14px;
+  transition: all 0.3s ease;
+}
+
+.instructor-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.instructor-avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  border: 1px solid var(--border-accent);
+  border-radius: 16px;
+  font-size: 28px;
+}
+
+.instructor-info {
+  flex: 1;
+}
+
+.instructor-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.instructor-role {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.instructor-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
+/* ─── EDIT MODE ─── */
+.edit-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-toggle button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit {
+  background: var(--accent);
+  color: #0a0a0f;
+}
+
+.btn-edit:hover { transform: scale(1.05); }
+
+.btn-edit.active {
+  background: var(--red);
+  color: #fff;
+}
+
+.btn-save {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  border: 1px solid var(--border) !important;
+}
+
+.btn-save:hover { background: rgba(255,255,255,0.15); }
+
+/* Editable highlight */
+body.editing [contenteditable="true"] {
+  outline: 1px dashed rgba(240,192,64,0.3);
+  outline-offset: 4px;
+  border-radius: 4px;
+  cursor: text;
+  transition: outline-color 0.2s;
+}
+
+body.editing [contenteditable="true"]:hover {
+  outline-color: rgba(240,192,64,0.6);
+}
+
+body.editing [contenteditable="true"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  background: rgba(240,192,64,0.04);
+}
+
+/* Rich toolbar */
+.rich-toolbar {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  z-index: 200;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 280px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+body.editing .rich-toolbar { display: flex; }
+
+.rich-toolbar button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+
+.rich-toolbar button:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.rich-toolbar button.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: var(--border-accent);
+}
+
+.rich-toolbar .sep {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  align-self: center;
+  margin: 0 2px;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  color: var(--accent);
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 300;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 480px) {
+  .section { padding: 60px 0; }
+  .hero { padding: 80px 0 60px; }
+  .step-card { padding: 24px; }
+  .pricing-card { padding: 32px 20px; }
+  .week-body { padding-left: 24px; }
+  .sticky-price { display: none; }
+  .sticky-btn { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ EDIT CONTROLS ═══ -->
+<div class="edit-toggle">
+  <button class="btn-edit" id="editBtn" onclick="toggleEdit()">✏️ 편집</button>
+  <button class="btn-save" id="saveBtn" onclick="saveHTML()" style="display:none;">📥 다운로드</button>
+</div>
+
+<div class="rich-toolbar" id="toolbar">
+  <button onclick="execCmd('bold')" title="굵게"><b>B</b></button>
+  <button onclick="execCmd('italic')" title="기울임"><i>I</i></button>
+  <button onclick="execCmd('underline')" title="밑줄"><u>U</u></button>
+  <button onclick="execCmd('strikeThrough')" title="취소선"><s>S</s></button>
+  <div class="sep"></div>
+  <button onclick="execCmd('fontSize','5')" title="글자 크게">A+</button>
+  <button onclick="execCmd('fontSize','2')" title="글자 작게">A-</button>
+  <div class="sep"></div>
+  <button onclick="setColor('#f0c040')" title="골드" style="color:#f0c040;">●</button>
+  <button onclick="setColor('#ff4d4f')" title="레드" style="color:#ff4d4f;">●</button>
+  <button onclick="setColor('#f5f5f7')" title="화이트" style="color:#f5f5f7;">●</button>
+  <button onclick="setColor('#a0a0b0')" title="그레이" style="color:#a0a0b0;">●</button>
+  <div class="sep"></div>
+  <button onclick="execCmd('removeFormat')" title="서식 제거">⌫</button>
+</div>
+
+<div class="toast" id="toast">저장 완료!</div>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <div class="container">
+    <div class="badge"><span class="dot"></span> 1기 모집 중 · 선착순 마감</div>
+    <h1>
+      GEO 실전 :<br>
+      <span class="gold">1등의 기술</span>
+    </h1>
+    <p class="subtitle">
+      AI 검색 시대, 유입부터 매출 증명까지<br>
+      압도적 1등을 만드는 3주 마스터클래스
+    </p>
+
+    <div class="hook-box">
+      <p>
+        "원장님, 어제 온라인에 쏟아부은<br>
+        <strong>광고비는 안녕하십니까?</strong>"
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 시대 변화 ═══════════ -->
+<section class="section">
+  <div class="container">
+    <div class="fade-in">
+      <span class="label">WHY NOW</span>
+      <h2 class="section-title">검색의 시대는 끝났습니다.<br><em>이제는 '답변'의 시대</em>입니다.</h2>
+      <p class="desc" style="margin-bottom: 32px;">
+        사람들은 더 이상 검색 결과 리스트를 하나씩 클릭하지 않습니다.<br>
+        AI가 요약해 준 <strong style="color:var(--text-primary);">단 하나의 답변</strong>만을 신뢰합니다.<br>
+        이 판도를 읽지 못하면, 당신의 브랜드는 AI의 기억 속에서 영원히 실종됩니다.
+      </p>
+    </div>
+
+    <div class="fade-in">
+      <div class="problem-card">
+        <span class="icon">🪝</span>GEO는 '낚싯바늘'일 뿐입니다 — AI 답변에 이름이 뜨는 건 시작일 뿐, 고객을 설득할 실체가 필요합니다.
+      </div>
+      <div class="problem-card">
+        <span class="icon">☠️</span>콘텐츠 없는 노출은 독입니다 — AI를 타고 유입된 고객은 결국 콘텐츠를 보고 설득됩니다.
+      </div>
+      <div class="problem-card">
+        <span class="icon">🎲</span>증명되지 않는 마케팅은 도박입니다 — "효과가 있는 것 같아요"라는 모호한 보고는 끝내야 합니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ STRIKE ═══════════ -->
+<section class="strike-section">
+  <div class="container fade-in">
+    <p class="strike-msg">
+      <span class="line-through">낚싯바늘만 던져두고</span><br>
+      <span class="line-through">미끼를 끼우지 않는 마케팅</span><br><br>
+      이제 <span class="highlight">본질</span>로 돌아갈 시간입니다.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════ 3단계 전략 ═══════════ -->
+<section class="section">
+  <div class="container">
+    <div class="fade-in">
+      <span class="label">OUR SOLUTION</span>
+      <h2 class="section-title">압도적 1등을 만드는<br><em>3단계 루틴</em></h2>
+      <p class="desc" style="margin-bottom: 36px;">
+        단순한 기술 교육을 넘어, 유입부터 성과 측정까지 이어지는<br>
+        비즈니스 선순환 구조를 구축해 드립니다.
+      </p>
+    </div>
+
+    <div class="fade-in">
+      <div class="step-card">
+        <span class="step-num">01</span>
+        <div class="step-label">Step 01</div>
+        <h3>GEO — 압도적 권위 설계</h3>
+        <span class="keyword">Attention</span>
+        <p>AI 검색 최상단을 점유하고, 브랜드를 해당 분야의 권위자로 인식시킵니다.</p>
+      </div>
+
+      <div class="step-card">
+        <span class="step-num">02</span>
+        <div class="step-label">Step 02</div>
+        <h3>콘텐츠 — 마음을 훔치는 실체</h3>
+        <span class="keyword">Trust</span>
+        <p>무한 생산 시스템을 통해 고품질 포스팅을 꾸준히 생성하고, 고객의 신뢰를 확보합니다.</p>
+      </div>
+
+      <div class="step-card">
+        <span class="step-num">03</span>
+        <div class="step-label">Step 03</div>
+        <h3>GA — 매출로 증명하는 성과</h3>
+        <span class="keyword">Proof</span>
+        <p>유입 경로를 정밀 분석하고, 마케팅의 성패를 데이터로 시각화합니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CURRICULUM ═══════════ -->
+<section class="section">
+  <div class="container">
+    <div class="fade-in">
+      <span class="label">CURRICULUM</span>
+      <h2 class="section-title"><em>3주간</em>의 압축 커리큘럼</h2>
+      <p class="desc" style="margin-bottom: 36px;">
+        매주 금요일 저녁, 2시간씩 집중 강의.
+      </p>
+    </div>
+
+    <div class="fade-in">
+      <div class="week-block">
+        <div class="week-header">
+          <div class="week-number">W1</div>
+          <div>
+            <div class="week-title">GEO 아이덴티티 정립</div>
+            <div class="week-subtitle">6월 5일 (금) 19:00 – 21:00</div>
+          </div>
+        </div>
+        <div class="week-body">
+          <ul>
+            <li>AI가 사랑하는 브랜드 정체성(Entity) 설계</li>
+            <li>성공 사례 해부 — 전문직의 매출 폭발 전략 공개</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="week-block">
+        <div class="week-header">
+          <div class="week-number">W2</div>
+          <div>
+            <div class="week-title">AI와 고객이 좋아하는 콘텐츠</div>
+            <div class="week-subtitle">6월 12일 (금) 19:00 – 21:00</div>
+          </div>
+        </div>
+        <div class="week-body">
+          <ul>
+            <li>AI가 좋아하는 콘텐츠 구조와 작성법</li>
+            <li>고객이 반응하는 콘텐츠 만들기 실습</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="week-block">
+        <div class="week-header">
+          <div class="week-number">W3</div>
+          <div>
+            <div class="week-title">AI 유입을 GA로 분석하기</div>
+            <div class="week-subtitle">6월 19일 (금) 19:00 – 21:00</div>
+          </div>
+        </div>
+        <div class="week-body">
+          <ul>
+            <li>유입 경로 추적 및 데이터 기반 성과 확인</li>
+            <li>교육 이후 컨설팅 및 자동화 로드맵 수립</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PROMISE ═══════════ -->
+<section class="section">
+  <div class="container">
+    <div class="fade-in">
+      <span class="label">PROMISE</span>
+      <h2 class="section-title">수강생만을 위한<br><em>특별한 약속</em></h2>
+      <p class="desc" style="margin-bottom: 32px;">
+        단순 교육에서 끝나지 않습니다. 3주 뒤 당신은<br>
+        스스로 분석하고, 기획하며, 데이터로 증명하게 됩니다.
+      </p>
+    </div>
+
+    <div class="fade-in">
+      <div class="benefit-item">
+        <div class="benefit-icon">📊</div>
+        <div class="benefit-text">
+          <h4>AI 정밀 진단 성적표 제공</h4>
+          <p>현재 당신의 브랜드가 AI에게 어떻게 읽히는지 정밀 진단해 드립니다.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🤝</div>
+        <div class="benefit-text">
+          <h4>1기 수강생 전용 커뮤니티</h4>
+          <p>동기 부여와 네트워킹을 위한 수강생 전용 그룹에 초대됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- ═══════════ PRICING ═══════════ -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="fade-in">
+      <span class="label">PRICING</span>
+      <h2 class="section-title">강의 일정 및 <em>신청</em></h2>
+    </div>
+
+    <div class="fade-in" style="margin-top: 28px;">
+      <div class="pricing-card">
+        <div class="original">550,000원</div>
+        <div class="price">330,000원</div>
+        <div class="discount-badge">1기 런칭 특가 40% OFF</div>
+
+        <div class="pricing-info">
+          <div class="pricing-info-row">
+            <span class="info-label">일정</span>
+            <span class="info-value">6/5, 6/12, 6/19 (매주 금)</span>
+          </div>
+          <div class="pricing-info-row">
+            <span class="info-label">시간</span>
+            <span class="info-value">오후 7:00 – 9:00</span>
+          </div>
+          <div class="pricing-info-row">
+            <span class="info-label">총 수업</span>
+            <span class="info-value">3회 · 총 6시간</span>
+          </div>
+          <div class="pricing-info-row">
+            <span class="info-label">포함</span>
+            <span class="info-value">AI 진단 성적표 + 로드맵</span>
+          </div>
+        </div>
+
+        <a href="https://zeroclicklab.liveklass.com/classes/301938" target="_blank" class="cta-btn">지금 바로 신청하기</a>
+        <p class="cta-sub">선착순 마감 · 마감 즉시 정가 인상</p>
+
+        <div class="urgency-bar">
+          ⚡ 1기 선착순 모집 중 — 마감 시 즉시 인상됩니다
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FINAL CTA ═══════════ -->
+<section class="section" style="text-align:center; padding-bottom: 120px;">
+  <div class="container fade-in">
+    <div class="divider-line"></div>
+    <p class="desc" style="font-size: 18px; color: var(--text-primary); font-weight: 700; line-height: 1.7; word-break: keep-all;">
+      지금 바로 AI 검색 시장의 1등을 선점하고<br>
+      마케팅의 본질을 되찾으십시오.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<div class="footer">
+  <div class="container">
+    <p>© 사짜마케팅. All Rights Reserved.</p>
+  </div>
+</div>
+
+<!-- ═══════════ STICKY CTA ═══════════ -->
+<div class="sticky-cta" id="stickyCta">
+  <div class="sticky-inner">
+    <div class="sticky-price">
+      <span style="text-decoration:line-through; font-size:12px;">550,000원</span>
+      <strong>330,000원</strong>
+    </div>
+    <a href="https://zeroclicklab.liveklass.com/classes/301938" target="_blank" class="sticky-btn">지금 신청하기 →</a>
+  </div>
+</div>
+
+<script>
+// ─── Scroll fade-in ───
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// ─── Sticky CTA ───
+const stickyEl = document.getElementById('stickyCta');
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      stickyEl.classList.toggle('visible', window.scrollY > 600);
+      ticking = false;
+    });
+    ticking = true;
+  }
+});
+
+// ─── Edit Mode ───
+const EDITABLE_SELECTORS = [
+  '.hero h1', '.hero .subtitle', '.hero .badge',
+  '.hook-box p',
+  '.section-title', '.desc', '.label',
+  '.problem-card', '.strike-msg',
+  '.step-label', '.step-card h3', '.step-card .keyword', '.step-card p',
+  '.week-title', '.week-subtitle', '.week-body li',
+  '.benefit-text h4', '.benefit-text p',
+  '.instructor-name', '.instructor-role', '.instructor-desc',
+  '.pricing-card .original', '.pricing-card .price', '.pricing-card .discount-badge',
+  '.info-label', '.info-value',
+  '.cta-btn', '.cta-sub', '.urgency-bar',
+  '.footer p',
+  '.sticky-price', '.sticky-btn'
+].join(',');
+
+let isEditing = false;
+
+function toggleEdit() {
+  isEditing = !isEditing;
+  const btn = document.getElementById('editBtn');
+  const saveBtn = document.getElementById('saveBtn');
+
+  if (isEditing) {
+    document.body.classList.add('editing');
+    btn.textContent = '🔒 편집 종료';
+    btn.classList.add('active');
+    saveBtn.style.display = 'inline-block';
+    document.querySelectorAll(EDITABLE_SELECTORS).forEach(el => {
+      el.setAttribute('contenteditable', 'true');
+    });
+  } else {
+    document.body.classList.remove('editing');
+    btn.textContent = '✏️ 편집';
+    btn.classList.remove('active');
+    saveBtn.style.display = 'none';
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      el.removeAttribute('contenteditable');
+    });
+  }
+}
+
+// ─── Rich Text Commands ───
+function execCmd(cmd, val) {
+  document.execCommand(cmd, false, val || null);
+}
+
+function setColor(color) {
+  document.execCommand('foreColor', false, color);
+}
+
+// ─── Save as HTML file (download) ───
+function saveHTML() {
+  // 1. 편집 UI를 숨긴 클린 버전 만들기 (DOM 복제)
+  const clone = document.documentElement.cloneNode(true);
+
+  // 클론에서 편집 UI 제거
+  const removeSelectors = ['.edit-toggle', '.rich-toolbar', '.toast'];
+  removeSelectors.forEach(sel => {
+    const el = clone.querySelector(sel);
+    if (el) el.remove();
+  });
+
+  // contenteditable 속성 제거
+  clone.querySelectorAll('[contenteditable]').forEach(el => {
+    el.removeAttribute('contenteditable');
+  });
+
+  // editing 클래스 제거
+  const body = clone.querySelector('body');
+  if (body) body.classList.remove('editing');
+
+  // 2. HTML 생성 & 다운로드
+  const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'geo-masterclass-landing.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  // 3. 토스트 (페이지 그대로 유지됨)
+  showToast('📥 파일 다운로드 완료! 편집을 계속할 수 있어요.');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+
+</body>
+</html>
