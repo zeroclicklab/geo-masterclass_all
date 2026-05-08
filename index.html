@@ -1,11 +1,297 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      (function() {
+        const originalConsole = window.console;
+        window.console = {
+          log: (...args) => {
+            originalConsole.log(...args);
+            window.parent.postMessage({ type: 'console', message: args.join(' ') }, '*');
+          },
+          error: (...args) => {
+            originalConsole.error(...args);
+            window.parent.postMessage({ type: 'console', message: 'Error: ' + args.join(' ') }, '*');
+          },
+          warn: (...args) => {
+            originalConsole.warn(...args);
+            window.parent.postMessage({ type: 'console', message: 'Warning: ' + args.join(' ') }, '*');
+          }
+        };
+
+        let requestId = 0;
+        let callbacksMap = new Map();
+        let streamControllers = new Map();
+        
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        window.storage = {
+          get: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageGet', id, key, shared }, '*');
+            });
+          },
+          set: (key, value, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageSet', id, key, value, shared }, '*');
+            });
+          },
+          delete: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageDelete', id, key, shared }, '*');
+            });
+          },
+          list: (prefix, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageList', id, prefix, shared }, '*');
+            });
+          }
+        };
+
+        let pendingBlobs = new Map();
+        URL.createObjectURL = (blob) => {
+          // Store the blob and create an ID and URL for it
+          const blobId = `blob-${Date.now()}-${Math.random()}`;
+          pendingBlobs.set(blobId, blob);
+          return `blob-request://${blobId}`;
+        };
+
+        URL.revokeObjectURL = (url) => {
+          // Remove the blob from our store
+          const blobId = url.replace("blob-request://", "");
+          pendingBlobs.delete(blobId);
+        };
+
+        const getBlobFromURL = (url) => {
+          const blobId = url.replace("blob-request://", "");
+          return pendingBlobs.get(blobId);
+        };
+
+        // Override global fetch with streaming support
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = requestId++;
+            const channelId = `fetch-${id}-${Date.now()}`;
+            
+            callbacksMap.set(id, { 
+              resolve: (response) => {
+                // Create a ReadableStream for the response body
+                const stream = new ReadableStream({
+                  start(controller) {
+                    streamControllers.set(channelId, controller);
+                  },
+                  cancel() {
+                    streamControllers.delete(channelId);
+                  }
+                });
+                
+                // Create and return the Response with the stream
+                resolve(new Response(stream, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers
+                }));
+              },
+              reject,
+              channelId
+            });
+            
+            window.parent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+              channelId
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          if (event.data.type === 'takeScreenshot') {
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              window.parent.postMessage({
+                type: 'screenshotError',
+                error: new Error('Root element not found'),
+              }, '*');
+            }
+            const screenshot = await htmlToImage.toPng(rootElement, {
+              imagePlaceholder:
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+            });
+            window.parent.postMessage({
+              type: 'screenshotData',
+              data: screenshot,
+            }, '*');
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+              callbacksMap.delete(event.data.id);
+            } else {
+              // Initial response with headers, status, etc.
+              callback.resolve({
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              });
+              // Don't delete the callback yet if streaming
+              if (!event.data.body) {
+                callbacksMap.delete(event.data.id);
+              }
+            }
+          } else if (event.data.type === 'proxyFetchStream') {
+            // Handle streaming data chunks
+            const controller = streamControllers.get(event.data.channelId);
+            if (controller) {
+              if (event.data.error) {
+                controller.error(new Error(event.data.error));
+                streamControllers.delete(event.data.channelId);
+              } else if (event.data.done) {
+                controller.close();
+                streamControllers.delete(event.data.channelId);
+                // Clean up the callback
+                const callback = Array.from(callbacksMap.entries()).find(
+                  ([_, value]) => value.channelId === event.data.channelId
+                );
+                if (callback) {
+                  callbacksMap.delete(callback[0]);
+                }
+              } else if (event.data.chunk) {
+                controller.enqueue(new Uint8Array(event.data.chunk));
+              }
+            }
+          } else if (event.data.type === 'storageGet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageSet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageDelete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageList') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        window.addEventListener('click', (event) => {
+          const isEl = event.target instanceof HTMLElement;
+          if (!isEl) return;
+    
+          // find ancestor links
+          const linkEl = event.target.closest("a");
+          if (!linkEl || !linkEl.href) return;
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          if (linkEl.href.startsWith("blob-request:")) {
+            const blob = getBlobFromURL(linkEl.href);
+            if (!blob) return;
+            void blob.arrayBuffer().then((data) => {
+              window.parent.postMessage({
+                type: "downloadFile",
+                filename: linkEl.download,
+                data,
+                mimeType: blob.type || "application/octet-stream",
+              });
+            });
+          } else if (linkEl.href.startsWith("data:")) {
+            const [header, base64Data] = linkEl.href.split(",");
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+            const binaryString = atob(base64Data);
+            const data = Uint8Array.from(binaryString, (c) =>
+              c.charCodeAt(0),
+            ).buffer;
+            window.parent.postMessage({
+              type: "downloadFile",
+              filename: linkEl.download,
+              data,
+              mimeType,
+            });
+          } else {
+            let linkUrl;
+            try {
+              linkUrl = new URL(linkEl.href);
+            } catch (error) {
+              return;
+            }
+    
+            if (linkUrl.hostname === window.location.hostname) return;
+      
+            window.parent.postMessage({
+              type: 'openExternal',
+              href: linkEl.href,
+            }, '*');
+          }
+      });
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          window.parent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          window.parent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+      })();
+    </script>
+  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GEO 실전 : 1등의 기술 — AI 검색 시대, 압도적 1등을 만드는 3주 마스터클래스</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&amp;family=Playfair+Display:wght@700;900&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
 <style>
 :root {
   --bg-deep: #0a0a0f;
@@ -56,6 +342,7 @@ body {
 .section {
   padding: 80px 0;
   position: relative;
+  text-align: center;
 }
 
 .section + .section {
@@ -196,6 +483,7 @@ body {
   color: var(--text-secondary);
   position: relative;
   transition: all 0.3s ease;
+  text-align: center;
 }
 
 .problem-card:hover {
@@ -243,6 +531,7 @@ body {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  text-align: center;
 }
 
 .step-card:hover {
@@ -306,6 +595,7 @@ body {
 .week-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 16px;
   padding: 20px 24px;
   cursor: pointer;
@@ -344,23 +634,20 @@ body {
 }
 
 .week-body {
-  padding: 0 24px 20px 88px;
+  padding: 0 24px 20px 24px;
+  text-align: center;
 }
 
 .week-body li {
   color: var(--text-secondary);
   font-size: 14px;
   margin-bottom: 8px;
-  padding-left: 16px;
-  position: relative;
   list-style: none;
   word-break: keep-all;
 }
 
 .week-body li::before {
-  content: '→';
-  position: absolute;
-  left: 0;
+  content: '→ ';
   color: var(--accent-dim);
   font-size: 13px;
 }
@@ -368,9 +655,11 @@ body {
 /* ─── PROMISE / BENEFITS ─── */
 .benefit-item {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  padding: 20px 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+  text-align: center;
 }
 
 .benefit-item + .benefit-item {
@@ -462,6 +751,7 @@ body {
   background: rgba(255,255,255,0.03);
   border-radius: 10px;
   font-size: 14px;
+  text-align: left;
 }
 
 .pricing-info-row .info-label {
@@ -867,50 +1157,27 @@ body.editing .rich-toolbar { display: flex; }
 }
 </style>
 </head>
-<body>
+<body id="artifacts-component-root-html" class="">
 
 <!-- ═══ EDIT CONTROLS ═══ -->
-<div class="edit-toggle">
-  <button class="btn-edit" id="editBtn" onclick="toggleEdit()">✏️ 편집</button>
-  <button class="btn-save" id="saveBtn" onclick="saveHTML()" style="display:none;">📥 다운로드</button>
-</div>
 
-<div class="rich-toolbar" id="toolbar">
-  <button onclick="execCmd('bold')" title="굵게"><b>B</b></button>
-  <button onclick="execCmd('italic')" title="기울임"><i>I</i></button>
-  <button onclick="execCmd('underline')" title="밑줄"><u>U</u></button>
-  <button onclick="execCmd('strikeThrough')" title="취소선"><s>S</s></button>
-  <div class="sep"></div>
-  <button onclick="execCmd('fontSize','5')" title="글자 크게">A+</button>
-  <button onclick="execCmd('fontSize','2')" title="글자 작게">A-</button>
-  <div class="sep"></div>
-  <button onclick="setColor('#f0c040')" title="골드" style="color:#f0c040;">●</button>
-  <button onclick="setColor('#ff4d4f')" title="레드" style="color:#ff4d4f;">●</button>
-  <button onclick="setColor('#f5f5f7')" title="화이트" style="color:#f5f5f7;">●</button>
-  <button onclick="setColor('#a0a0b0')" title="그레이" style="color:#a0a0b0;">●</button>
-  <div class="sep"></div>
-  <button onclick="execCmd('removeFormat')" title="서식 제거">⌫</button>
-</div>
 
-<div class="toast" id="toast">저장 완료!</div>
+
+
+
 
 <!-- ═══════════ HERO ═══════════ -->
 <section class="hero">
   <div class="container">
     <div class="badge"><span class="dot"></span> 1기 모집 중 · 선착순 마감</div>
-    <h1>
-      GEO 실전 :<br>
-      <span class="gold">1등의 기술</span>
-    </h1>
-    <p class="subtitle">
-      AI 검색 시대, 유입부터 매출 증명까지<br>
-      압도적 1등을 만드는 3주 마스터클래스
+    <h1><div><span style="font-size: clamp(28px, 7vw, 48px);">작은 병원을 위한</span></div><div>GEO 실전 :&nbsp;<span class="gold">1등의 기술</span>
+    </div></h1>
+    <p class="subtitle">&nbsp;작은 병원을 위한<br>
+      AI 검색 시대 마케팅 3주 마스터클래스
     </p>
 
     <div class="hook-box">
-      <p>
-        "원장님, 어제 온라인에 쏟아부은<br>
-        <strong>광고비는 안녕하십니까?</strong>"
+      <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"원장님, 매달 쏟아붓는&nbsp;<strong>광고비는 괜찮으신가요?</strong>"
       </p>
     </div>
   </div>
@@ -919,37 +1186,37 @@ body.editing .rich-toolbar { display: flex; }
 <!-- ═══════════ 시대 변화 ═══════════ -->
 <section class="section">
   <div class="container">
-    <div class="fade-in">
+    <div class="fade-in visible">
       <span class="label">WHY NOW</span>
-      <h2 class="section-title">검색의 시대는 끝났습니다.<br><em>이제는 '답변'의 시대</em>입니다.</h2>
+      <h2 class="section-title">원장님 스스로도&nbsp;<div>환자도 점점 AI에게<br><em>병원을 물어보고 있습니다.</em></div></h2>
       <p class="desc" style="margin-bottom: 32px;">
-        사람들은 더 이상 검색 결과 리스트를 하나씩 클릭하지 않습니다.<br>
-        AI가 요약해 준 <strong style="color:var(--text-primary);">단 하나의 답변</strong>만을 신뢰합니다.<br>
-        이 판도를 읽지 못하면, 당신의 브랜드는 AI의 기억 속에서 영원히 실종됩니다.
+        "우리 동네 좋은 치과 추천해줘" — 이 질문의 답을<br>
+        이제 <strong style="color:var(--text-primary);">ChatGPT와 AI 검색</strong>이 대신합니다.<br>
+        AI가 추천하지 않는 병원은 환자의 선택지에서 사라집니다.
       </p>
     </div>
 
-    <div class="fade-in">
+    <div class="fade-in visible">
       <div class="problem-card">
-        <span class="icon">🪝</span>GEO는 '낚싯바늘'일 뿐입니다 — AI 답변에 이름이 뜨는 건 시작일 뿐, 고객을 설득할 실체가 필요합니다.
-      </div>
+        <span class="icon">💸</span>매달 광고비 수백만 원, 끊으면 환자도 끊깁니다&nbsp;<div>— 광고 의존형 마케팅의 한계입니다.
+      </div></div>
       <div class="problem-card">
-        <span class="icon">☠️</span>콘텐츠 없는 노출은 독입니다 — AI를 타고 유입된 고객은 결국 콘텐츠를 보고 설득됩니다.
-      </div>
+        <span class="icon">👻</span>블로그를 열심히 써도 AI는 우리 병원을 모릅니다&nbsp;<div>— 기존 SEO만으로는 AI 답변에 노출되지 않습니다.
+      </div></div>
       <div class="problem-card">
-        <span class="icon">🎲</span>증명되지 않는 마케팅은 도박입니다 — "효과가 있는 것 같아요"라는 모호한 보고는 끝내야 합니다.
-      </div>
+        <span class="icon">🎲</span>"효과가 있는 것 같아요"는 마케팅이 아닙니다&nbsp;<div>— 데이터 없는 마케팅은 도박입니다.
+      </div></div>
     </div>
   </div>
 </section>
 
 <!-- ═══════════ STRIKE ═══════════ -->
 <section class="strike-section">
-  <div class="container fade-in">
+  <div class="container fade-in visible">
     <p class="strike-msg">
-      <span class="line-through">낚싯바늘만 던져두고</span><br>
-      <span class="line-through">미끼를 끼우지 않는 마케팅</span><br><br>
-      이제 <span class="highlight">본질</span>로 돌아갈 시간입니다.
+      <span class="line-through">대형 병원처럼 광고비를 태우는 마케팅</span><br>
+      <span class="line-through">대행사에 맡기고 기도하는 마케팅</span><br><br>
+      작은 병원에는 <span class="highlight">다른 전략</span>이 필요합니다.
     </p>
   </div>
 </section>
@@ -957,38 +1224,38 @@ body.editing .rich-toolbar { display: flex; }
 <!-- ═══════════ 3단계 전략 ═══════════ -->
 <section class="section">
   <div class="container">
-    <div class="fade-in">
+    <div class="fade-in visible">
       <span class="label">OUR SOLUTION</span>
-      <h2 class="section-title">압도적 1등을 만드는<br><em>3단계 루틴</em></h2>
+      <h2 class="section-title">고객이 병원을 선택하게 만드는<br><em>3단계 루틴</em></h2>
       <p class="desc" style="margin-bottom: 36px;">
-        단순한 기술 교육을 넘어, 유입부터 성과 측정까지 이어지는<br>
-        비즈니스 선순환 구조를 구축해 드립니다.
+        원장님이 직접 배우고, 직접 실행할 수 있는<br>
+        작은 병원 맞춤형 마케팅 시스템을 구축합니다.
       </p>
     </div>
 
-    <div class="fade-in">
+    <div class="fade-in visible">
       <div class="step-card">
         <span class="step-num">01</span>
         <div class="step-label">Step 01</div>
-        <h3>GEO — 압도적 권위 설계</h3>
+        <h3>GEO — AI가 우리 병원을 기억하게</h3>
         <span class="keyword">Attention</span>
-        <p>AI 검색 최상단을 점유하고, 브랜드를 해당 분야의 권위자로 인식시킵니다.</p>
+        <p>AI 검색에서 "○○동 좋은 병원" 질문에 우리 병원이 추천되도록 브랜드 권위를 설계합니다.</p>
       </div>
 
       <div class="step-card">
         <span class="step-num">02</span>
         <div class="step-label">Step 02</div>
-        <h3>콘텐츠 — 마음을 훔치는 실체</h3>
+        <h3>콘텐츠 — 환자가 좋아하는 선택하는 콘텐츠가 필요합니다.</h3>
         <span class="keyword">Trust</span>
-        <p>무한 생산 시스템을 통해 고품질 포스팅을 꾸준히 생성하고, 고객의 신뢰를 확보합니다.</p>
+        <p>AI와 환자 모두가 좋아하는 콘텐츠를 쉽고 빠르게 만드는 시스템을 구축합니다.</p>
       </div>
 
       <div class="step-card">
         <span class="step-num">03</span>
         <div class="step-label">Step 03</div>
-        <h3>GA — 매출로 증명하는 성과</h3>
+        <h3>GA — 어디서 어떻게 왜 고객이 오게 되는지 데이터가 필요합니다.</h3>
         <span class="keyword">Proof</span>
-        <p>유입 경로를 정밀 분석하고, 마케팅의 성패를 데이터로 시각화합니다.</p>
+        <p>신환 유입 경로를 데이터로 추적하고, 마케팅 효과를 눈으로 확인합니다.</p>
       </div>
     </div>
   </div>
@@ -997,27 +1264,28 @@ body.editing .rich-toolbar { display: flex; }
 <!-- ═══════════ CURRICULUM ═══════════ -->
 <section class="section">
   <div class="container">
-    <div class="fade-in">
+    <div class="fade-in visible">
       <span class="label">CURRICULUM</span>
       <h2 class="section-title"><em>3주간</em>의 압축 커리큘럼</h2>
       <p class="desc" style="margin-bottom: 36px;">
-        매주 금요일 저녁, 2시간씩 집중 강의.
-      </p>
+        진료 후 저녁 시간, 매주 금요일 2시간씩.<br>
+        원장님·실장님이 직접 배우고 바로 적용합니다.
+      <div><font color="#ff4d4f">- 실습이 포함 되어 있습니다. 실습을 다 하지 못하면 집에 못갑니다.</font></div><div><font color="#ff4d4f">- 컴퓨터를 잘 못다루셔도 됩니다. 옆에 붙어서 하나씩 알려드릴거니까요</font></div></p>
     </div>
 
-    <div class="fade-in">
+    <div class="fade-in visible">
       <div class="week-block">
         <div class="week-header">
           <div class="week-number">W1</div>
           <div>
-            <div class="week-title">GEO 아이덴티티 정립</div>
+            <div class="week-title">우리 병원 GEO 아이덴티티 정립</div>
             <div class="week-subtitle">6월 5일 (금) 19:00 – 21:00</div>
           </div>
         </div>
         <div class="week-body">
           <ul>
-            <li>AI가 사랑하는 브랜드 정체성(Entity) 설계</li>
-            <li>성공 사례 해부 — 전문직의 매출 폭발 전략 공개</li>
+            <li>AI가 우리 병원을 인식하는 브랜드 정체성(Entity) 설계</li>
+            <li>실제 병원 성공 사례 해부 — 신환 유입 폭발 전략 공개</li>
           </ul>
         </div>
       </div>
@@ -1026,14 +1294,14 @@ body.editing .rich-toolbar { display: flex; }
         <div class="week-header">
           <div class="week-number">W2</div>
           <div>
-            <div class="week-title">AI와 고객이 좋아하는 콘텐츠</div>
+            <div class="week-title">AI와 환자가 좋아하는 콘텐츠찾고 만들기</div>
             <div class="week-subtitle">6월 12일 (금) 19:00 – 21:00</div>
           </div>
         </div>
         <div class="week-body">
           <ul>
-            <li>AI가 좋아하는 콘텐츠 구조와 작성법</li>
-            <li>고객이 반응하는 콘텐츠 만들기 실습</li>
+            <li>AI 추천에 잘 걸리는 병원 콘텐츠 구조와 작성법</li>
+            <li>환자가 신뢰하고 예약까지 이어지는 콘텐츠 실습</li>
           </ul>
         </div>
       </div>
@@ -1042,14 +1310,14 @@ body.editing .rich-toolbar { display: flex; }
         <div class="week-header">
           <div class="week-number">W3</div>
           <div>
-            <div class="week-title">AI 유입을 GA로 분석하기</div>
+            <div class="week-title">신환 유입을 GA로 분석하기</div>
             <div class="week-subtitle">6월 19일 (금) 19:00 – 21:00</div>
           </div>
         </div>
         <div class="week-body">
           <ul>
-            <li>유입 경로 추적 및 데이터 기반 성과 확인</li>
-            <li>교육 이후 컨설팅 및 자동화 로드맵 수립</li>
+            <li>신환이 어디서 왔는지 유입 경로 추적 실습</li>
+            <li>데이터 기반 마케팅 판단 + 자동화 로드맵 수립</li>
           </ul>
         </div>
       </div>
@@ -1060,28 +1328,28 @@ body.editing .rich-toolbar { display: flex; }
 <!-- ═══════════ PROMISE ═══════════ -->
 <section class="section">
   <div class="container">
-    <div class="fade-in">
+    <div class="fade-in visible">
       <span class="label">PROMISE</span>
-      <h2 class="section-title">수강생만을 위한<br><em>특별한 약속</em></h2>
+      <h2 class="section-title">원장님을 위한<br><em>특별한 약속</em></h2>
       <p class="desc" style="margin-bottom: 32px;">
-        단순 교육에서 끝나지 않습니다. 3주 뒤 당신은<br>
-        스스로 분석하고, 기획하며, 데이터로 증명하게 됩니다.
+        단순 교육에서 끝나지 않습니다. 3주 뒤 원장님은<br>
+        직접 분석하고, 기획하며, 데이터로 확인하게 됩니다.
       </p>
     </div>
 
-    <div class="fade-in">
+    <div class="fade-in visible">
       <div class="benefit-item">
         <div class="benefit-icon">📊</div>
         <div class="benefit-text">
-          <h4>AI 정밀 진단 성적표 제공</h4>
-          <p>현재 당신의 브랜드가 AI에게 어떻게 읽히는지 정밀 진단해 드립니다.</p>
+          <h4>우리 병원 AI 정밀 진단 성적표</h4>
+          <p>현재 우리 병원이 AI에게 어떻게 읽히고 있는지 정밀 진단해 드립니다.</p>
         </div>
       </div>
       <div class="benefit-item">
         <div class="benefit-icon">🤝</div>
         <div class="benefit-text">
-          <h4>1기 수강생 전용 커뮤니티</h4>
-          <p>동기 부여와 네트워킹을 위한 수강생 전용 그룹에 초대됩니다.</p>
+          <h4>1기 원장님 전용 커뮤니티</h4>
+          <p>같은 고민을 가진 원장님·실장님들과 네트워킹하는 전용 그룹에 초대됩니다.</p>
         </div>
       </div>
     </div>
@@ -1093,12 +1361,12 @@ body.editing .rich-toolbar { display: flex; }
 <!-- ═══════════ PRICING ═══════════ -->
 <section class="section" id="pricing">
   <div class="container">
-    <div class="fade-in">
+    <div class="fade-in visible">
       <span class="label">PRICING</span>
       <h2 class="section-title">강의 일정 및 <em>신청</em></h2>
     </div>
 
-    <div class="fade-in" style="margin-top: 28px;">
+    <div class="fade-in visible" style="margin-top: 28px;">
       <div class="pricing-card">
         <div class="original">550,000원</div>
         <div class="price">330,000원</div>
@@ -1136,12 +1404,9 @@ body.editing .rich-toolbar { display: flex; }
 
 <!-- ═══════════ FINAL CTA ═══════════ -->
 <section class="section" style="text-align:center; padding-bottom: 120px;">
-  <div class="container fade-in">
+  <div class="container fade-in visible">
     <div class="divider-line"></div>
-    <p class="desc" style="font-size: 18px; color: var(--text-primary); font-weight: 700; line-height: 1.7; word-break: keep-all;">
-      지금 바로 AI 검색 시장의 1등을 선점하고<br>
-      마케팅의 본질을 되찾으십시오.
-    </p>
+    <p class="desc" style="font-size: 18px; color: var(--text-primary); font-weight: 700; line-height: 1.7; word-break: keep-all;">큰 병원 마케팅 대행을 하고 있지만&nbsp;<div>점차 작은 병원이 설자리가 없어진다고 생각합니다.</div><div>작은 병원이 오셨으면 합니다.&nbsp;</div><div>직접하고 스스로 할수 있게&nbsp;</div></p>
   </div>
 </section>
 
@@ -1153,7 +1418,7 @@ body.editing .rich-toolbar { display: flex; }
 </div>
 
 <!-- ═══════════ STICKY CTA ═══════════ -->
-<div class="sticky-cta" id="stickyCta">
+<div class="sticky-cta visible" id="stickyCta">
   <div class="sticky-inner">
     <div class="sticky-price">
       <span style="text-decoration:line-through; font-size:12px;">550,000원</span>
@@ -1282,5 +1547,6 @@ function showToast(msg) {
 }
 </script>
 
-</body>
-</html>
+
+
+</body></html>
